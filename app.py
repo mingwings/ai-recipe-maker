@@ -3,7 +3,7 @@ import requests  # For making HTTP requests to OpenRouter's API
 import pandas as pd
 
 # Set your OpenRouter API key
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = "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"
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Initialize ingredient database if not already present
