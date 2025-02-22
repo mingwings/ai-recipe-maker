@@ -1,15 +1,47 @@
 import streamlit as st
 import requests  # For making HTTP requests to OpenRouter's API
+import pandas as pd
 
 # Set your OpenRouter API key
 OPENROUTER_API_KEY = "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"
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
+# Initialize ingredient database if not already present
+if "ingredient_db" not in st.session_state:
+    st.session_state.ingredient_db = pd.DataFrame(columns=["Ingredient", "Quantity", "Unit"])
+
 # Streamlit app title
-st.title("Marina's Recipe Maker")
+st.title("Marina's Recipe Maker and Inventory Tracker")
+
+# Section 1: Manage Ingredient Inventory
+st.header("Manage Your Ingredient Inventory")
+with st.form("add_ingredient_form"):
+    ingredient_name = st.text_input("Ingredient Name:")
+    ingredient_quantity = st.number_input("Quantity:", min_value=0.0, step=0.1)
+    ingredient_unit = st.selectbox("Unit:", ["grams", "pieces"])
+    add_ingredient = st.form_submit_button("Add/Update Ingredient")
+
+if add_ingredient and ingredient_name:
+    if ingredient_name in st.session_state.ingredient_db["Ingredient"].values:
+        idx = st.session_state.ingredient_db["Ingredient"] == ingredient_name
+        st.session_state.ingredient_db.loc[idx, ["Quantity", "Unit"]] = [ingredient_quantity, ingredient_unit]
+    else:
+        new_data = pd.DataFrame({"Ingredient": [ingredient_name], "Quantity": [ingredient_quantity], "Unit": [ingredient_unit]})
+        st.session_state.ingredient_db = pd.concat([st.session_state.ingredient_db, new_data], ignore_index=True)
+    st.success(f"{ingredient_name} added/updated successfully!")
+
+# Display current inventory
+st.subheader("Current Inventory")
+st.dataframe(st.session_state.ingredient_db)
+
+# Section 2: Recipe Generation
+st.header("Generate a Recipe")
 
 # User input for ingredients
-ingredients = st.text_area("Enter the ingredients you have (comma-separated):", "chicken, rice, tomatoes, onions")
+selected_ingredients = st.multiselect(
+    "Select ingredients from your inventory:",
+    st.session_state.ingredient_db["Ingredient"].tolist()
+)
 
 # User input for notes
 notes = st.text_area("Any additional notes or preferences (optional):", "e.g., make it spicy, I don't have an oven, etc.")
@@ -22,12 +54,17 @@ model = st.selectbox(
 
 # Button to generate recipe
 if st.button("Generate Recipe"):
-    if ingredients:
+    if selected_ingredients:
         # Create a prompt for the AI, including the notes
+        ingredients_with_units = [
+            f"{row['Ingredient']} ({row['Quantity']} {row['Unit']})"
+            for _, row in st.session_state.ingredient_db[st.session_state.ingredient_db["Ingredient"].isin(selected_ingredients)].iterrows()
+        ]
+        ingredients = ", ".join(ingredients_with_units)
         prompt = f"Create a detailed recipe using the following ingredients: {ingredients}."
         if notes:
             prompt += f" Additional notes: {notes}."
-        prompt += " Include step-by-step instructions."
+        prompt += " Include step-by-step instructions and list the quantities of ingredients used."
 
         # Prepare the request payload for OpenRouter
         payload = {
@@ -54,7 +91,15 @@ if st.button("Generate Recipe"):
             recipe = response.json()["choices"][0]["message"]["content"]
             st.subheader("Generated Recipe:")
             st.write(recipe)
+            
+            # Confirmation to update inventory
+            if st.button("Confirm and Update Inventory"):
+                # For simplicity, we'll assume 1 unit used for each ingredient
+                for ingredient in selected_ingredients:
+                    idx = st.session_state.ingredient_db["Ingredient"] == ingredient
+                    st.session_state.ingredient_db.loc[idx, "Quantity"] -= 1
+                st.success("Inventory updated successfully!")
         else:
             st.error(f"Failed to generate recipe. Error: {response.text}")
     else:
-        st.warning("Please enter some ingredients!")
+        st.warning("Please select some ingredients!")
