@@ -3,7 +3,7 @@ import requests  # For making HTTP requests to OpenRouter's API
 import pandas as pd
 
 # Set your OpenRouter API key
-OPENROUTER_API_KEY = "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"
+OPENROUTER_API_KEY = st.text_input("Enter your OpenRouter API key:", type="password")
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Initialize ingredient database if not already present
@@ -99,6 +99,8 @@ if st.button("Generate Recipe"):
                     idx = st.session_state.ingredient_db["Ingredient"] == ingredient
                     st.session_state.ingredient_db.loc[idx, "Quantity"] -= 1
                 st.success("Inventory updated successfully!")
+        elif response.status_code == 401:
+            st.error("Invalid API credentials. Please check your OpenRouter API key.")
         else:
             st.error(f"Failed to generate recipe. Error: {response.text}")
     else:
