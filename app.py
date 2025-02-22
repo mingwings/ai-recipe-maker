@@ -6,7 +6,7 @@ OPENROUTER_API_KEY = "sk-or-v1-5d6e367c007608311ab728b05f8132e872e2d1ad61a3a7b35
 OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Streamlit app title
-st.title("AI Recipe Maker 🍳 (Powered by OpenRouter)")
+st.title("Marina's Recipe Maker")
 
 # User input for ingredients
 ingredients = st.text_area("Enter the ingredients you have (comma-separated):", "chicken, rice, tomatoes, onions")
